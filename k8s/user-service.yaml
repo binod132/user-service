@@ -5,7 +5,7 @@ metadata:
   labels:
     app: user-service
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: user-service
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+        image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest
         ports:
         - containerPort: 5000
         resources:
