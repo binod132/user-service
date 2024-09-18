@@ -40,15 +40,19 @@ jobs:
         run: |  
           docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
-      # # Set up kubectl to interact with the GKE cluster
-      # - name: Set up kubectl
-      #   run: |
-      #     gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+      # Set up kubectl to interact with the GKE cluster
+      - name: Set up kubectl
+        run: |
+          gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
 
-      # # Apply Kubernetes manifests for User Service
-      # - name: Deploy User Service
-      #   run: |
-      #     kubectl apply -f k8s/user-service.yaml
+      # Apply Kubernetes manifests for User Service
+      - name: Deploy User Service
+        run: |
+          kubectl apply -f k8s/user-service.yaml
+      # Check User Service PODs
+      - name: User Service pods
+        run: |
+          kubectl get pod | grep user
 
       # # Apply Kubernetes manifests for Order Service
       # - name: Deploy Order Service
