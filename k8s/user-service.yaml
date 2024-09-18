@@ -17,6 +17,7 @@ spec:
       containers:
       - name: user-service
         image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         resources:
