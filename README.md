@@ -1,6 +1,28 @@
 # user-service
 
-
+1. Implement a Kubernetes Deployment for Service A with a horizontal pod
+autoscaler (HPA) that dynamically adjusts its replica count based on CPU
+utilization.
+----------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: order-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-service
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+----------
 2. Deploy Service B with a custom metric monitoring configuration, allowing its
 replica count to be dynamically scaled based on the CPU utilization of Service A.
 ----------
@@ -33,4 +55,5 @@ replica count to be dynamically scaled based on the CPU utilization of Service A
     - Check hpa created by prometheus-scaledobject: 
         '''kubectl get hpa'''
     - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
+-------
         `kubectl get pod |grep user-service`
