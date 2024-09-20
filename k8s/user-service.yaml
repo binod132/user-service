@@ -53,10 +53,18 @@ spec:
   minReplicas: 1
   maxReplicas: 5
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
+  metrics:
+  - type: Pods
+    pods:
+      metric:
+        name: cpu_usage_total_order_service  # Custom metric name
       target:
-        type: Utilization
-        averageUtilization: 50  # Target 50% CPU utilization
+        type: AverageValue
+        averageValue: 10m  # Target CPU usage of 0.5 (500m = 0.5 cores)
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     target:
+  #       type: Utilization
+  #       averageUtilization: 50  # Target 50% CPU utilization
 
