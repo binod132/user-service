@@ -25,15 +25,12 @@ utilization.
 
 2. Deploy Service B with a custom metric monitoring configuration, allowing its
 replica count to be dynamically scaled based on the CPU utilization of Service A.
-
     I am using KEDA, event-based scaling, as keda is easy to implement and fast.
     2.1 Installtion
-    ---
-    helm install keda kedacore/keda --namespace keda --create-namespace
-    ---
+    `helm install keda kedacore/keda --namespace keda --create-namespace`
+
     2.2 To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
 
-    '''
     apiVersion: keda.sh/v1alpha1
     kind: ScaledObject
     metadata:
@@ -51,7 +48,6 @@ replica count to be dynamically scaled based on the CPU utilization of Service A
         metricName: container_cpu_usage_seconds_total
         threshold: '1000'
         query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
-    '''
     2.3 Validation
     - Check hpa created by prometheus-scaledobject: 
         '''kubectl get hpa'''
