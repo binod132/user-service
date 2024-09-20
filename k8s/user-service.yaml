@@ -40,32 +40,4 @@ spec:
   selector:
     app: user-service
 ---
-# hpa-user-service.yaml
-apiVersion: autoscaling/v2beta1
-kind: HorizontalPodAutoscaler
-metadata:
-  name: user-service-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: extensions/v1beta1
-    kind: Deployment
-    name: user-service
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Pods
-    pods:
-      metricName: cpu_usage_total_order_service
-      targetAverageValue: 40m
-#      metric:
-#        name: cpu_usage_total_order_service  # Custom metric name
-      # target:
-      #   type: AverageValue
-      #   averageValue: "1001m"  # Target CPU usage of 0.5 (500m = 0.5 cores)
-  # - type: Resource
-  #   resource:
-  #     name: cpu
-  #     target:
-  #       type: Utilization
-  #       averageUtilization: 50  # Target 50% CPU utilization
 
