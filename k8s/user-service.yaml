@@ -59,7 +59,7 @@ spec:
         name: cpu_usage_total_order_service  # Custom metric name
       target:
         type: AverageValue
-        averageValue: 1001m  # Target CPU usage of 0.5 (500m = 0.5 cores)
+        averageValue: "1001m"  # Target CPU usage of 0.5 (500m = 0.5 cores)
   # - type: Resource
   #   resource:
   #     name: cpu
