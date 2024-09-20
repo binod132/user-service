@@ -47,7 +47,7 @@ metadata:
   name: user-service-hpa
 spec:
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: autoscaling/v2beta1
     kind: Deployment
     name: user-service
   minReplicas: 1
