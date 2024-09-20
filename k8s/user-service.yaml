@@ -40,4 +40,21 @@ spec:
   selector:
     app: user-service
 ---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: prometheus-scaledobject
+  namespace: default
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  scaleTargetRef:
+    name: user-service
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
+      metricName: container_cpu_usage_seconds_total
+      threshold: '20'
+      query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
 
