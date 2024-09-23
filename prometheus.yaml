@@ -1,0 +1,87 @@
+prometheus:
+  prometheusSpec:
+    namespaceSelector:
+      matchNames:
+        - default
+        - services
+        - kafka
+    additionalScrapeConfigs:
+      - job_name: 'mqtt'
+        metrics_path: /api/v5/prometheus/stats
+        static_configs:
+          - targets: ['34.83.42.13:18083']
+additionalPrometheusRulesMap:
+  rule-name:
+    groups:
+    - name: A_group
+      rules:
+      - alert: POD_CrashLoop
+        expr: max_over_time(kube_pod_container_status_waiting_reason{job="kube-state-metrics",namespace=~".*",reason="CrashLoopBackOff"}[5m]) >= 1
+        for: 1m
+        labels:
+          severity: critical
+          group: A_group
+          instance: '{{ $labels.instance }}'
+          pod: '{{ $labels.pod }}'
+        annotations:
+                description: Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state CrashLoopBackOff..
+                summary: Pod is crash looping, Please check logs, descriptions, events, configmaps, external services or consult with Dev Team. Thanks from Binod.
+      - alert: CPUThrottlingHigh
+        expr:  sum by (cluster, container, pod, namespace) (increase(container_cpu_cfs_throttled_periods_total{container!=""}[5m])) / 
+               sum by (cluster, container, pod, namespace) (increase(container_cpu_cfs_periods_total[5m])) > (25 / 100)
+        for: 1m
+        labels:
+          severity: critical
+          group: A_group
+        annotations:
+                description: "{{ $value | humanizePercentage }} throttling of CPU in namespace {{ $labels.namespace }} for container {{ $labels.container }} in pod {{ $labels.pod }}."
+                summary: Processes experience elevated CPU throttling.Pod's container needs more CPU, please check CPU limits or HPA. Thanks from Binod.         
+      - alert: OOMKilled
+        expr: max_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          group: A_group
+        annotations:
+                description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has been killed due OOMKilled."
+                summary: Pod's Continer Killed due to OOM.Please check Memory or HPA. Thanks from Binod.                
+
+alertmanager:
+  config:
+    route:
+      group_by: ['group','alertname', 'namespace', 'severity']
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 2m
+      receiver: 'default-receivers'
+
+      routes:
+        - matchers:
+            - 'group="A_group"'
+            - 'severity="critical"'
+          receiver: 'critical-receiver'
+          continue: false
+
+    receivers:
+      - name: 'default-receivers'
+        # Define your default receiver settings here, e.g., email, Slack, etc.
+      - name: 'critical-receiver'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/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'
+            channel: '#anydone-alerts'
+            send_resolved: false
+            color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+            title: 'Critical Alerts'
+            text: |-
+             {{ range .Alerts }}
+                *Alert:* {{ .Labels.alertname }}
+                *Severity:* {{ .Labels.severity }}
+                *Namespace:* {{ .Labels.namespace }}
+                *Pod:* {{ .Labels.pod }}
+                *Container:* {{ .Labels.container }}
+                *Reason:* {{ .Labels.reason }}
+                *Instance:* {{ .Labels.instance }}
+                *Description:* {{ .Annotations.description }}
+                *Summary:* {{ .Annotations.summary }}
+                ---
+             {{ end }} 

@@ -60,3 +60,76 @@ replica count to be dynamically scaled based on the CPU utilization of Service A
 ```yaml
         kubectl get pod |grep user-service`
 ```
+
+3. Ensure that Service C is scheduled only on nodes with GPU resources available.
+You may use NodeAffinity or other suitable methods to achieve this.
+
+Add node-pool with GPU and add labels
+example for GKE cluster
+
+```yaml
+gcloud container node-pools create gpu-node-pool \
+    --cluster my-standard-cluster \
+    --zone us-west1-a \
+    --accelerator type=nvidia-tesla-t4,count=1 \
+    --num-nodes 1 \
+    --machine-type n1-standard-4 \
+    --node-labels=gpu=true \
+    --metadata=gpu-driver-installation-mode=cos-containerd \
+    --scopes=https://www.googleapis.com/auth/cloud-platform
+
+```
+Check and Validate the nodes.
+```
+gcloud container node-pools list --cluster=my-standard-cluster --zone=us-west1-a
+
+NAME           MACHINE_TYPE   DISK_SIZE_GB  NODE_VERSION
+cpu-pool       e2-standard-2  100           1.30.3-gke.1639000
+gpu-node-pool  n1-standard-4  100           1.30.3-gke.1639000
+
+```
+Add nodeAffinity on Deployment manifest to match above labels. (Note: use antiaffinity for other non-gpu pods)
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  labels:
+    app: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/payment-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            nvidia.com/gpu: 1  # Request 1 GPU
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: gpu
+                    operator: In
+                    values:
+                      - "true"  # Only schedule on GPU nodes
+```
+4. Implement inter-service communication between A, B, and C within the cluster.
+Consider security best practices for communication.
+
+- use fdqn, service type clusterip
+- TLS
+- service account
+- networkpolicies
