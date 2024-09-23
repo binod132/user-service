@@ -67,7 +67,7 @@ alertmanager:
         # Define your default receiver settings here, e.g., email, Slack, etc.
       - name: 'critical-receiver'
         slack_configs:
-          - api_url: 'https://hooks.slack.com/services/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'
+          #- api_url: 'https://hooks.slack.com/services/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'
             channel: '#anydone-alerts'
             send_resolved: false
             color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
