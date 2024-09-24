@@ -23,6 +23,8 @@ spec:
                 operator: NotIn
                 values:
                 - "true"
+      imagePullSecrets: 
+        - name: dockersecret
       containers:
       - name: user-service
         #image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest
