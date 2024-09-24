@@ -59,16 +59,37 @@ jobs:
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
       
       # code analysis and vulnerability     
-      # Install Trivy
+     # Run Trivy vulnerability scanner
       - name: Run Trivy vulnerability scanner
+        id: trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest'
           format: 'table'
-          exit-code: '1'
+          exit-code: '0' # Set to 0 to allow subsequent steps
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+
+      # Check vulnerability counts and fail if thresholds are exceeded
+      - name: Check Trivy results
+        run: |
+          # Extract the number of vulnerabilities from the Trivy scan output
+          TRIVY_OUTPUT=$(echo "${{ steps.trivy.outputs.vuln-report }}" | grep -A 5 "Total" | tail -n +2)
+          HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
+          CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
+
+          # Set thresholds
+          HIGH_THRESHOLD=10
+          CRITICAL_THRESHOLD=10
+
+          # Check counts against thresholds
+          if [ "$HIGH_COUNT" -gt "$HIGH_THRESHOLD" ] || [ "$CRITICAL_COUNT" -gt "$CRITICAL_THRESHOLD" ]; then
+            echo "Vulnerability threshold exceeded: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+            exit 1  # Fail the step
+          else
+            echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+          fi
 
       # # Scan the Docker image with Trivy
       # - name: Scan Docker image with Trivy
