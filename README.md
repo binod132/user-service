@@ -1,16 +1,16 @@
 # **Assignment**
-Useful links and informations:
-frontend: http://35.190.85.148/
-backend: order-service
-git repo: 
-  https://github.com/binod132/user-service
-  https://github.com/binod132/order-service
-  https://github.com/binod132/payment-service
-CICD: https://github.com/binod132/user-service/blob/main/.github/workflows/actions.yaml
-Local Registry: http://35.227.182.97:8081/#browse/browse:local-registry
-K8s manifest: 
-  https://github.com/binod132/user-service/blob/main/k8s/user-service.yaml
-  https://github.com/binod132/order-service/blob/main/k8s/order-service.yaml  
+Useful links and informations:  
+frontend: http://35.190.85.148/  
+backend: order-service  
+git repo:   
+  https://github.com/binod132/user-service  
+  https://github.com/binod132/order-service  
+  https://github.com/binod132/payment-service  
+CICD: https://github.com/binod132/user-service/blob/main/.github/workflows/actions.yaml  
+Local Registry: http://35.227.182.97:8081/#browse/browse:local-registry  
+K8s manifest:   
+  https://github.com/binod132/user-service/blob/main/k8s/user-service.yaml  
+  https://github.com/binod132/order-service/blob/main/k8s/order-service.yaml    
 
 #**General Questions:**
 **1. How do you ensure that security is integrated into the software development lifecycle in a DevSecOps environment? Can you give an example of how you implemented security measures in a recent project?**
