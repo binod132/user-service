@@ -70,12 +70,13 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          output: test.txt
 
       # Check vulnerability counts and fail if thresholds are exceeded
       - name: Check Trivy results
         run: |
-          # Capture Trivy scan output directly
-          TRIVY_OUTPUT="${{ steps.trivy.outputs.vuln-report }}"
+          # Capture Trivy scan output from the output file
+          TRIVY_OUTPUT=$(cat test.txt)
           
           # Extract the number of vulnerabilities from the Trivy scan output
           HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
