@@ -1,8 +1,8 @@
-# Assignment
-
-1. Implement a Kubernetes Deployment for Service A with a horizontal pod
+# **Assignment**
+## **Kubernetes Lab Question**
+1. **Implement a Kubernetes Deployment for Service A with a horizontal pod
 autoscaler (HPA) that dynamically adjusts its replica count based on CPU
-utilization.
+utilization.**
 ```yaml
     apiVersion: autoscaling/v2
     kind: HorizontalPodAutoscaler
