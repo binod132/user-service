@@ -2,68 +2,68 @@
 ## **Kubernetes Lab Question**
 1. **Advanced Multi-Container Orchestration (30 Points):**  
   1. **Implement a Kubernetes Deployment for Service A with a horizontal pod
-autoscaler (HPA) that dynamically adjusts its replica count based on CPU
-utilization.**
-```yaml
-    apiVersion: autoscaling/v2
-    kind: HorizontalPodAutoscaler
-    metadata:
-    name: order-service
-    spec:
-    scaleTargetRef:
-        apiVersion: apps/v1
-        kind: Deployment
-        name: order-service
-    minReplicas: 1
-    maxReplicas: 10
-    metrics:
-    - type: Resource
-        resource:
-        name: cpu
-        target:
-            type: Utilization
-            averageUtilization: 75
-```  
-  2. **Deploy Service B with a custom metric monitoring configuration, allowing its
-replica count to be dynamically scaled based on the CPU utilization of Service A.**  
-    We can use KEDA, event-based scaling, as keda is easy to implement and fast.
-a. Installtion
-
-```yaml
-    helm install keda kedacore/keda --namespace keda --create-namespace
-```
-b. To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
-```yaml
-    apiVersion: keda.sh/v1alpha1
-    kind: ScaledObject
-    metadata:
-    name: prometheus-scaledobject
-    namespace: default
-    spec:
-    minReplicaCount: 1
-    maxReplicaCount: 4
-    scaleTargetRef:
-        name: user-service
-    triggers:
-    - type: prometheus
+    autoscaler (HPA) that dynamically adjusts its replica count based on CPU
+    utilization.**
+    ```yaml
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
         metadata:
-        serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
-        metricName: container_cpu_usage_seconds_total
-        threshold: '1000'
-        query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
-```
-c. Validation
-    - Check hpa created by prometheus-scaledobject: 
-```yaml
-        kubectl get hpa
-```
-NAME                               REFERENCE                  TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
-keda-hpa-prometheus-scaledobject   Deployment/user-service    17936m/20 (avg)   3         10        4          3d20h
-order-service                      Deployment/order-service   cpu: 10%/75%      2         10        2          3d19h
-    - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
-```yaml
-        kubectl get pod |grep user-service`
-```
+        name: order-service
+        spec:
+        scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: order-service
+        minReplicas: 1
+        maxReplicas: 10
+        metrics:
+        - type: Resource
+            resource:
+            name: cpu
+            target:
+                type: Utilization
+                averageUtilization: 75
+    ```  
+  2. **Deploy Service B with a custom metric monitoring configuration, allowing its
+    replica count to be dynamically scaled based on the CPU utilization of Service A.**  
+        We can use KEDA, event-based scaling, as keda is easy to implement and fast.
+    a. Installtion
+
+    ```yaml
+        helm install keda kedacore/keda --namespace keda --create-namespace
+    ```
+    b. To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
+    ```yaml
+        apiVersion: keda.sh/v1alpha1
+        kind: ScaledObject
+        metadata:
+        name: prometheus-scaledobject
+        namespace: default
+        spec:
+        minReplicaCount: 1
+        maxReplicaCount: 4
+        scaleTargetRef:
+            name: user-service
+        triggers:
+        - type: prometheus
+            metadata:
+            serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
+            metricName: container_cpu_usage_seconds_total
+            threshold: '1000'
+            query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
+    ```
+    c. Validation
+        - Check hpa created by prometheus-scaledobject: 
+    ```yaml
+            kubectl get hpa
+    ```
+    NAME                               REFERENCE                  TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+    keda-hpa-prometheus-scaledobject   Deployment/user-service    17936m/20 (avg)   3         10        4          3d20h
+    order-service                      Deployment/order-service   cpu: 10%/75%      2         10        2          3d19h
+        - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
+    ```yaml
+            kubectl get pod |grep user-service`
+    ```
 
 1.3 Ensure that Service C is scheduled only on nodes with GPU resources available.
 You may use NodeAffinity or other suitable methods to achieve this.
