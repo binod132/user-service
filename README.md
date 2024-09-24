@@ -670,11 +670,60 @@ jobs:
 #**Code Analysis and Vulnerability Checking (4 points):**
 - Code Analysis: Pylint is used as application is written in python. 
 CICD step: Check Pylint score. It scan the app.py or any.py file, and gives the score based on Vulnerability, good coding practices and etc.
-We can fails the CICD step and stop if set score is below user defined threshold.
+```yaml      
+# 2. Code Analysis
+      - name: Check Pylint score
+        run: |
+          pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
+          echo "Pylint score: $pylint_score"
+          if (( $(echo "$pylint_score <= 0.01" | bc -l) )); then
+            echo "Pylint score is too low. Failing the build."
+            exit 1
+          fi
+          echo "Pylint score is acceptable. Passing the build."
+```
+It fails the CICD step and stop if set score is below user defined threshold.
 - Image Scan
 CICD step: Run Trivy vulnerability scanner
+```yaml
+      # 4. Image Scanning
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: 'us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest'
+          format: 'table'
+          exit-code: '0' # Set to 0 to allow subsequent steps
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          output: test.txt
+```
 It scan the build image and create report of vulnerabilities
+
 CICD step: Check Trivy results
+```yaml 
+      - name: Check Trivy results and exit if vulnerabilities>0.
+        run: |
+          # Capture Trivy scan output from the output file
+          TRIVY_OUTPUT=$(cat test.txt)
+          
+          # Extract the number of vulnerabilities from the Trivy scan output
+          HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
+          CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
+
+          # Set thresholds
+          HIGH_THRESHOLD=0
+          CRITICAL_THRESHOLD=0
+
+          # Check counts against thresholds
+          if [ "$HIGH_COUNT" -gt "$HIGH_THRESHOLD" ] || [ "$CRITICAL_COUNT" -gt "$CRITICAL_THRESHOLD" ]; then
+            echo "Vulnerability threshold exceeded: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+            exit 1  # Fail the step
+          else
+            echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+          fi
+```
 It process Trivy results and stop CICD if number of vulnerabilities's (High, Critical) is above user defined threshold
 
 #**Automation**
