@@ -63,7 +63,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: '$REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest'
+          image-ref: 'us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
