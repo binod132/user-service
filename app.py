@@ -8,6 +8,10 @@ users = [
     {"id": 2, "name": "Bob"}
 ]
 
+@app.route('/', methods=['GET'])
+def hello():
+    response = requests.get('hello')
+    return jsonify(response.json())
 @app.route('/users/<int:user_id>/orders', methods=['GET'])
 def get_user_orders(user_id):
     # Call the order-service using HTTPS
