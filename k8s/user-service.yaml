@@ -100,3 +100,31 @@ roleRef:
   name: user-service-role
   apiGroup: rbac.authorization.k8s.io
 
+---
+# Task 2.5 Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-ingress-prod
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: prod-test-ip
+    #networking.gke.io/managed-certificates: "managed-certificate"
+    networking.gke.io/v1beta1.FrontendConfig: "http-to-https"
+    cloud.google.com/health-check-interval-sec: "60"
+    cloud.google.com/health-check-timeout-sec: "30"
+
+spec:
+  rules:
+
+  - host: frontend.khalti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 5000
+
