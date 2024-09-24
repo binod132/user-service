@@ -3,7 +3,7 @@ name: Build and Publish Docker Image to selfhosted docker registry
 on:
   push:
     branches:
-      - main  # Adjust this to your desired branch
+      - task-2  # Adjust this to your desired branch
   workflow_dispatch:
 
 jobs:
@@ -30,5 +30,33 @@ jobs:
       run: |
         docker push 35.227.182.97:8082/user-service:latest  
 
-    - name: Log out from Nexus
-      run: docker logout ${{ secrets.NEXUS_URL }}
+    - id: "auth"
+      uses: "google-github-actions/auth@v1"
+      with:
+        credentials_json: ${{ secrets.SA }}
+
+    - name: "Set up Cloud SDK"
+      uses: "google-github-actions/setup-gcloud@v1"
+    
+    # Install gke-gcloud-auth-plugin through gcloud
+    - name: Install GKE gcloud Auth Plugin
+      run: |
+        gcloud components install gke-gcloud-auth-plugin
+        gcloud components update
+
+    - name: "Use gcloud CLI"
+      run: "gcloud info"
+
+    - name: Set up kubectl
+      run: |
+        gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+        kubectl version --client
+
+    # Apply Kubernetes manifests for User Service
+    - name: Deploy User Service
+      run: |
+        kubectl apply -f k8s/user-service.yaml
+    # Check User Service PODs
+    - name: User Service pods
+      run: |
+        kubectl get pod | grep user
