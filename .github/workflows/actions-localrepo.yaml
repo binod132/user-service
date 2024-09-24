@@ -5,7 +5,12 @@ on:
     branches:
       - task-2  # Adjust this to your desired branch
   workflow_dispatch:
-
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER_NAME }}
+  GKE_ZONE: ${{ secrets.GKE_CLUSTER_ZONE }}
+  REGION: ${{ secrets.REGION }}
+  
 jobs:
   build:
     runs-on: ubuntu-latest
