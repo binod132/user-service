@@ -253,7 +253,7 @@ Certificates are managed via cert-manager, stored in Kubernetes secrets.
 KEDA Metrics: Utilized Prometheus metrics to scale user-service based on the CPU load of order-service.
 Metrics used: container_cpu_usage_seconds_total from Prometheus for event-driven scaling based on traffic or load.
 
-2. #**Deploying a Multi-Container Application (20 Points)**
+#**Deploying a Multi-Container Application (20 Points)**
 Note: user-service as frontend and order-service as backend
 Tasks:
 1. Create a Kubernetes Deployment for the frontend web server user-service, ensuring it has:
