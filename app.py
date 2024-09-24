@@ -26,4 +26,4 @@ def get_user_orders(user_id):
         return jsonify({'error': 'Failed to retrieve orders'}), response.status_code
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=80)
