@@ -133,4 +133,11 @@ spec:
             name: user-service
             port:
               number: 80
+      - path: /orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 5000
 

@@ -1,4 +1,6 @@
 # **Assignment**
+Useful links:
+frontend: 
 # **Kubernetes Lab Question**
 1. #**Advanced Multi-Container Orchestration (30 Points):**  
   1.1 **Implement a Kubernetes Deployment for Service A with a horizontal pod
