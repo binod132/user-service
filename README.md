@@ -469,8 +469,111 @@ spec:
               number: 80
 ```
 
+SDLC Automation
+1. CICD/Containerization ( 20 Points):
+Dockerfile with Multistage Build and Best Layering Technique
+- Multistage build
+```Dockerfile 
+# Stage 1: Build the image
+FROM python:3.9-slim AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Run the image
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Copy from builder stage
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY app.py .
+
+EXPOSE 5000
+CMD ["python", "app.py"]
+```
+
+Benifites of multi-stage build:
+a. Reduce Image size by packaging minimal requried runtime environment to run application on container.
+b. Make build fast.
+c. Improve security because of minimal requried runtime environment reduces valvulnerabilities.
+d. Layering cached intermideate artifacts and increases build speed and security.
 
 
+CI/CD Pipeline Setup with Jenkins or GitHub Actions (4 points):
+
+Tool: gitaction
+Environment Variables: Github Secrets and Variable
+
+```yaml
+name: CI/CD for Microservices
+
+on:
+  push:
+    branches:
+      - task-1  # Trigger on pushes to the main branch
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER_NAME }}
+  GKE_ZONE: ${{ secrets.GKE_CLUSTER_ZONE }}
+  REGION: ${{ secrets.REGION }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: ${{ secrets.SA }}
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+      
+      # Install gke-gcloud-auth-plugin through gcloud
+      - name: Install GKE gcloud Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+          gcloud components update
+
+      - name: "Use gcloud CLI"
+        run: "gcloud info"
+
+      - name: "Docker auth"
+        run: |-
+              gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+
+      # Build and push Order Service Docker image
+      - name: Build and Push Order Service Docker image
+        run: |  
+          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
+          docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+      # Set up kubectl to interact with the GKE cluster
+      - name: Set up kubectl
+        run: |
+          gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+          kubectl version --client
+
+      # Apply Kubernetes manifests for User Service
+      - name: Deploy User Service
+        run: |
+          kubectl apply -f k8s/user-service.yaml
+      # Check User Service PODs
+      - name: User Service pods
+        run: |
+          kubectl get pod | grep user
+```
 
 Automation
 2. Bash Script (10 Points):
@@ -501,4 +604,22 @@ number
 one
 this
 two
+```
+
+
+Log Parsing
+Used python request package.
+```python 
+@app.route('/users/<int:user_id>/orders', methods=['GET'])
+def get_user_orders(user_id):
+    # Call the order-service using HTTPS
+    order_service_url = f'https://order-service.default.svc.cluster.local:5000/orders?user_id={user_id}'
+    
+    # Disable SSL verification for internal communication (only in internal trusted networks)
+    response = requests.get(order_service_url, verify=False)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({'error': 'Failed to retrieve orders'}), response.status_code
 ```

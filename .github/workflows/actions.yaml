@@ -60,13 +60,3 @@ jobs:
       - name: User Service pods
         run: |
           kubectl get pod | grep user
-
-      # # Apply Kubernetes manifests for Order Service
-      # - name: Deploy Order Service
-      #   run: |
-      #     kubectl apply -f k8s/order-service.yaml
-
-      # # Apply Kubernetes manifests for Payment Service
-      # - name: Deploy Payment Service
-      #   run: |
-      #     kubectl apply -f k8s/payment-service.yaml

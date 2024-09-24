@@ -4,8 +4,8 @@ import requests
 app = Flask(__name__)
 
 users = [
-    {"id": 1, "name": "Alice"},
-    {"id": 2, "name": "Bob"}
+    {"id": 1, "name": "test1"},
+    {"id": 2, "name": "test2"}
 ]
 
 @app.route('/', methods=['GET'])
