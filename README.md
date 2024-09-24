@@ -1,72 +1,72 @@
 # **Assignment**
-## **Kubernetes Lab Question**
-1. **Advanced Multi-Container Orchestration (30 Points):**  
-  1. **Implement a Kubernetes Deployment for Service A with a horizontal pod
-    autoscaler (HPA) that dynamically adjusts its replica count based on CPU
-    utilization.**
-    ```yaml
-        apiVersion: autoscaling/v2
-        kind: HorizontalPodAutoscaler
-        metadata:
+# **Kubernetes Lab Question**
+1. #**Advanced Multi-Container Orchestration (30 Points):**  
+  1.1 **Implement a Kubernetes Deployment for Service A with a horizontal pod
+autoscaler (HPA) that dynamically adjusts its replica count based on CPU
+utilization.**
+```yaml
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+    name: order-service
+    spec:
+    scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
         name: order-service
-        spec:
-        scaleTargetRef:
-            apiVersion: apps/v1
-            kind: Deployment
-            name: order-service
-        minReplicas: 1
-        maxReplicas: 10
-        metrics:
-        - type: Resource
-            resource:
-            name: cpu
-            target:
-                type: Utilization
-                averageUtilization: 75
-    ```  
-  2. **Deploy Service B with a custom metric monitoring configuration, allowing its
-    replica count to be dynamically scaled based on the CPU utilization of Service A.**  
-        We can use KEDA, event-based scaling, as keda is easy to implement and fast.
-    a. Installtion
+    minReplicas: 1
+    maxReplicas: 10
+    metrics:
+    - type: Resource
+        resource:
+        name: cpu
+        target:
+            type: Utilization
+            averageUtilization: 75
+```  
+  1.2 **Deploy Service B with a custom metric monitoring configuration, allowing its
+replica count to be dynamically scaled based on the CPU utilization of Service A.**  
+    We can use KEDA, event-based scaling, as keda is easy to implement and fast.
+a. Installtion
 
-    ```yaml
-        helm install keda kedacore/keda --namespace keda --create-namespace
-    ```
-    b. To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
-    ```yaml
-        apiVersion: keda.sh/v1alpha1
-        kind: ScaledObject
+```yaml
+    helm install keda kedacore/keda --namespace keda --create-namespace
+```
+b. To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
+```yaml
+    apiVersion: keda.sh/v1alpha1
+    kind: ScaledObject
+    metadata:
+    name: prometheus-scaledobject
+    namespace: default
+    spec:
+    minReplicaCount: 1
+    maxReplicaCount: 4
+    scaleTargetRef:
+        name: user-service
+    triggers:
+    - type: prometheus
         metadata:
-        name: prometheus-scaledobject
-        namespace: default
-        spec:
-        minReplicaCount: 1
-        maxReplicaCount: 4
-        scaleTargetRef:
-            name: user-service
-        triggers:
-        - type: prometheus
-            metadata:
-            serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
-            metricName: container_cpu_usage_seconds_total
-            threshold: '1000'
-            query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
-    ```
-    c. Validation
-        - Check hpa created by prometheus-scaledobject: 
-    ```yaml
-            kubectl get hpa
-    ```
-    NAME                               REFERENCE                  TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
-    keda-hpa-prometheus-scaledobject   Deployment/user-service    17936m/20 (avg)   3         10        4          3d20h
-    order-service                      Deployment/order-service   cpu: 10%/75%      2         10        2          3d19h
-        - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
-    ```yaml
-            kubectl get pod |grep user-service`
-    ```
+        serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
+        metricName: container_cpu_usage_seconds_total
+        threshold: '1000'
+        query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
+```
+c. Validation
+    - Check hpa created by prometheus-scaledobject: 
+```yaml
+        kubectl get hpa
+```
+NAME                               REFERENCE                  TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+keda-hpa-prometheus-scaledobject   Deployment/user-service    17936m/20 (avg)   3         10        4          3d20h
+order-service                      Deployment/order-service   cpu: 10%/75%      2         10        2          3d19h
+    - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
+```yaml
+        kubectl get pod |grep user-service`
+```
 
-1.3 Ensure that Service C is scheduled only on nodes with GPU resources available.
-You may use NodeAffinity or other suitable methods to achieve this.
+  1.3 **Ensure that Service C is scheduled only on nodes with GPU resources available.
+You may use NodeAffinity or other suitable methods to achieve this.**
 
 Add node-pool with GPU and add labels
 example for GKE cluster
@@ -92,7 +92,7 @@ cpu-pool       e2-standard-2  100           1.30.3-gke.1639000
 gpu-node-pool  n1-standard-4  100           1.30.3-gke.1639000
 
 ```
-Add nodeAffinity on Deployment manifest to match above labels. (Note: use antiaffinity for other non-gpu pods)
+Add nodeAffinity on Deployment manifest to match above labels. (**Note: use antiaffinity for other non-gpu pods**)
 
 ```yaml
 apiVersion: apps/v1
@@ -130,8 +130,8 @@ spec:
                     values:
                       - "true"  # Only schedule on GPU nodes
 ```
-4. Implement inter-service communication between A, B, and C within the cluster.
-Consider security best practices for communication.
+1.4 **Implement inter-service communication between A, B, and C within the cluster.
+Consider security best practices for communication.**
 
 - FQDN, service type CLUSTERIP for inter-pod communication
 Serive A (user-service) is calling Service B (order-service) on order_service_url = f'https://order-service.default.svc.cluster.local:5000/orders?user_id={user_id}'
@@ -253,7 +253,7 @@ Certificates are managed via cert-manager, stored in Kubernetes secrets.
 KEDA Metrics: Utilized Prometheus metrics to scale user-service based on the CPU load of order-service.
 Metrics used: container_cpu_usage_seconds_total from Prometheus for event-driven scaling based on traffic or load.
 
-Deploying a Multi-Container Application (20 Points)
+2. #**Deploying a Multi-Container Application (20 Points)**
 Note: user-service as frontend and order-service as backend
 Tasks:
 1. Create a Kubernetes Deployment for the frontend web server user-service, ensuring it has:
@@ -473,9 +473,9 @@ spec:
               number: 80
 ```
 
-SDLC Automation
-1. CICD/Containerization ( 20 Points):
-Dockerfile with Multistage Build and Best Layering Technique
+#**SDLC Automation**
+1. #**CICD/Containerization ( 20 Points):**
+#**Dockerfile with Multistage Build and Best Layering Technique**
 - Multistage build
 ```Dockerfile 
 # Stage 1: Build the image
@@ -509,7 +509,7 @@ c. Improve security because of minimal requried runtime environment reduces valv
 d. Layering cached intermideate artifacts and increases build speed and security.
 
 
-CI/CD Pipeline Setup with Jenkins or GitHub Actions (4 points):
+#**CI/CD Pipeline Setup with Jenkins or GitHub Actions (4 points):**
 
 Tool: gitaction
 Environment Variables: Github Secrets and Variable
@@ -630,7 +630,7 @@ jobs:
           kubectl get pod | grep user
 ```
 
-Code Analysis and Vulnerability Checking (4 points):
+#**Code Analysis and Vulnerability Checking (4 points):**
 - Code Analysis: Pylint is used as application is written in python. 
 CICD step: Check Pylint score. It scan the app.py or any.py file, and gives the score based on Vulnerability, good coding practices and etc.
 We can fails the CICD step and stop if set score is below user defined threshold.
@@ -640,8 +640,8 @@ It scan the build image and create report of vulnerabilities
 CICD step: Check Trivy results
 It process Trivy results and stop CICD if number of vulnerabilities's (High, Critical) is above user defined threshold
 
-Automation
-2. Bash Script (10 Points):
+#**Automation**
+2. #**Bash Script (10 Points):**
 Scenario:
 You have a directory with various text files. Write a Bash script to find all the unique words across all files.
 Example of files.txt
@@ -672,7 +672,7 @@ two
 ```
 
 
-Logging:
+#**Logging:**
 1. Log Parsing.
   Used python request package.
   ```python 
