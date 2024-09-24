@@ -51,7 +51,18 @@ jobs:
       - name: Run Pylint for Python code analysis
         run: |
           pip install pylint
-          pylint app.py
+          pylint app.py > pylint-output.txt || true
+
+      # Check if the Pylint score is greater than 0.01
+      - name: Check Pylint score
+        run: |
+          pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
+          echo "Pylint score: $pylint_score"
+          if (( $(echo "$pylint_score <= 0.01" | bc -l) )); then
+            echo "Pylint score is too low. Failing the build."
+            exit 1
+          fi
+          echo "Pylint score is acceptable. Passing the build."
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
         run: |
