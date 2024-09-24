@@ -24,7 +24,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t http://35.227.182.97:8082/user-service:latest .  
+        docker build -t http://35.227.182.97:8082/repository/local-registry/user-service:latest .  
 
     - name: Push Docker image
       run: |
