@@ -16,80 +16,102 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Initial Setup
+      # 1. Initial Setup
       - name: Initial Setup
-        run: |
-          # Checkout code
-          git clone https://github.com/${{ github.repository }} .
-          
-          # Authenticate with Google Cloud
-          echo "${{ secrets.SA }}" > gcloud_credentials.json
-          gcloud auth activate-service-account --key-file=gcloud_credentials.json
-          gcloud config set project $PROJECT_ID
-          gcloud components install gke-gcloud-auth-plugin
-          gcloud components update
-          
-          # Docker Authentication
-          gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v3
 
-      # Code Analysis
+          - id: "auth"
+            uses: "google-github-actions/auth@v1"
+            with:
+              credentials_json: ${{ secrets.SA }}
+
+          - name: "Set up Cloud SDK"
+            uses: "google-github-actions/setup-gcloud@v1"
+      
+          - name: Install GKE gcloud Auth Plugin
+            run: |
+              gcloud components install gke-gcloud-auth-plugin
+              gcloud components update
+
+          - name: "Docker auth"
+            run: |
+              gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+
+      # 2. Code Analysis
       - name: Code Analysis
-        run: |
-          # Run Pylint to check the code quality
-          pylint_output=$(pylint .)  # Assuming pylint is installed and configured
-          echo "$pylint_output" > pylint-output.txt
+        steps:
+          - name: Check Pylint score
+            run: |
+              pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
+              echo "Pylint score: $pylint_score"
+              if (( $(echo "$pylint_score <= 0.01" | bc -l) )); then
+                echo "Pylint score is too low. Failing the build."
+                exit 1
+              fi
+              echo "Pylint score is acceptable. Passing the build."
 
-          # Extract Pylint score and check
-          pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
-          echo "Pylint score: $pylint_score"
-          if (( $(echo "$pylint_score <= 0.01" | bc -l) )); then
-            echo "Pylint score is too low. Failing the build."
-            exit 1
-          fi
-          echo "Pylint score is acceptable. Passing the build."
-
-      # Docker Build
+      # 3. Docker Build
       - name: Docker Build
-        run: |
-          # Build Docker image
-          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
+        steps:
+          - name: Build Order Service Docker image
+            run: |  
+              docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
+      
+      # 4. Image Scanning
+      - name: Image Scanning
+        steps:
+          - name: Run Trivy vulnerability scanner
+            id: trivy
+            uses: aquasecurity/trivy-action@0.20.0
+            with:
+              image-ref: 'us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest'
+              format: 'table'
+              exit-code: '0' # Set to 0 to allow subsequent steps
+              ignore-unfixed: true
+              vuln-type: 'os,library'
+              severity: 'CRITICAL,HIGH'
+              output: test.txt
 
-      # Image Scan
-      - name: Image Scan
-        run: |
-          # Run Trivy vulnerability scanner
-          trivy image --exit-code 0 --ignore-unfixed --vuln-type os,library \
-            --severity CRITICAL,HIGH --format table \
-            -o test.txt $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+          - name: Check Trivy results
+            run: |
+              # Capture Trivy scan output from the output file
+              TRIVY_OUTPUT=$(cat test.txt)
+              
+              # Extract the number of vulnerabilities from the Trivy scan output
+              HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
+              CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
 
-          # Check vulnerability counts and fail if thresholds are exceeded
-          TRIVY_OUTPUT=$(cat test.txt)
-          HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
-          CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
-          HIGH_THRESHOLD=10
-          CRITICAL_THRESHOLD=10
+              # Set thresholds
+              HIGH_THRESHOLD=10
+              CRITICAL_THRESHOLD=10
 
-          if [ "$HIGH_COUNT" -gt "$HIGH_THRESHOLD" ] || [ "$CRITICAL_COUNT" -gt "$CRITICAL_THRESHOLD" ]; then
-            echo "Vulnerability threshold exceeded: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
-            exit 1  # Fail the step
-          else
-            echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
-          fi
+              # Check counts against thresholds
+              if [ "$HIGH_COUNT" -gt "$HIGH_THRESHOLD" ] || [ "$CRITICAL_COUNT" -gt "$CRITICAL_THRESHOLD" ]; then
+                echo "Vulnerability threshold exceeded: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+                exit 1  # Fail the step
+              else
+                echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+              fi
 
-      # Docker Push
+      # 5. Docker Push
       - name: Docker Push
-        run: |
-          # Push Docker image
+        run: |  
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
 
-      # Deployment
-      - name: Deploy to GKE
-        run: |
-          # Set up kubectl
-          gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+      # 6. Deployment
+      - name: Deployment
+        steps:
+          - name: Set up kubectl
+            run: |
+              gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+              kubectl version --client
 
-          # Deploy User Service
-          kubectl apply -f k8s/user-service.yaml
-
-          # Check User Service PODs
-          kubectl get pod | grep user
+          - name: Deploy User Service
+            run: |
+              kubectl apply -f k8s/user-service.yaml
+          
+          - name: User Service pods
+            run: |
+              kubectl get pod | grep user
