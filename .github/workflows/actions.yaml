@@ -3,7 +3,7 @@ name: CI/CD for Microservices
 on:
   push:
     branches:
-      - task-1  # Trigger on pushes to the main branch
+      - main  # Trigger on pushes to the main branch
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
