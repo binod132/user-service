@@ -1,6 +1,7 @@
 # **Assignment**
 ## **Kubernetes Lab Question**
-1. **Implement a Kubernetes Deployment for Service A with a horizontal pod
+1. **Advanced Multi-Container Orchestration (30 Points):**
+1.1 **Implement a Kubernetes Deployment for Service A with a horizontal pod
 autoscaler (HPA) that dynamically adjusts its replica count based on CPU
 utilization.**
 ```yaml
@@ -23,8 +24,8 @@ utilization.**
             type: Utilization
             averageUtilization: 75
 ```
-2. Deploy Service B with a custom metric monitoring configuration, allowing its
-replica count to be dynamically scaled based on the CPU utilization of Service A.
+1.2 **Deploy Service B with a custom metric monitoring configuration, allowing its
+replica count to be dynamically scaled based on the CPU utilization of Service A.**
     I am using KEDA, event-based scaling, as keda is easy to implement and fast.
 2.1 Installtion
 
