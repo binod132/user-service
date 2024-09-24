@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Log in to Nexus
-      run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_URL }} -u ${{ secrets.NEXUS_USERNAME }} --password-stdin
+      run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login http://35.227.182.97:8082 -u admin --password-stdin
 
     - name: Build Docker image
       run: |
