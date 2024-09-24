@@ -569,7 +569,6 @@ jobs:
       - name: Build and Push Order Service Docker image
         run: |  
           docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
-          docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
       
       # code analysis and vulnerability     
      # Run Trivy vulnerability scanner
@@ -606,6 +605,10 @@ jobs:
           else
             echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
           fi
+      # Push Order Service Docker image
+      - name: Push Order Service Docker image
+        run: |  
+          docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
 
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
