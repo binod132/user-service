@@ -40,20 +40,8 @@ jobs:
       - name: "Docker auth"
         run: |-
               gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
-
-      # Build and push Order Service Docker image
-      - name: Build and Push Order Service Docker image
-        run: |  
-          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
-          docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
-
-      # Pylint for Python Code Analysis
-      - name: Run Pylint for Python code analysis
-        run: |
-          pip install pylint
-          pylint app.py > pylint-output.txt || true
-
-      # Check if the Pylint score is greater than 0.01
+      # code analysis and vulnerability
+      ## Application code analysis and vulnerability
       - name: Check Pylint score
         run: |
           pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
@@ -63,6 +51,35 @@ jobs:
             exit 1
           fi
           echo "Pylint score is acceptable. Passing the build."
+
+      # Build and push Order Service Docker image
+      - name: Build and Push Order Service Docker image
+        run: |  
+          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
+          docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+      
+      # code analysis and vulnerability     
+      # Install Trivy
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.34.1_Linux-64bit.deb
+          sudo dpkg -i trivy_0.34.1_Linux-64bit.deb
+
+      # Scan the Docker image with Trivy
+      - name: Scan Docker image with Trivy
+        run: |
+          trivy image --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest || true
+
+      # Check the scan result and fail if critical vulnerabilities are found
+      - name: Check Trivy scan result
+        run: |
+          trivy image --quiet --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+          if [ $? -ne 0 ]; then
+            echo "Critical vulnerabilities found in Docker image. Failing the build."
+            exit 1
+          fi
+          
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
         run: |
