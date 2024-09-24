@@ -56,6 +56,9 @@ replica count to be dynamically scaled based on the CPU utilization of Service A
 ```yaml
         kubectl get hpa
 ```
+NAME                               REFERENCE                  TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+keda-hpa-prometheus-scaledobject   Deployment/user-service    17936m/20 (avg)   3         10        4          3d20h
+order-service                      Deployment/order-service   cpu: 10%/75%      2         10        2          3d19h
     - Increase load on order-service and check number of pods. (you can use k6 or Jmeter)
 ```yaml
         kubectl get pod |grep user-service`
@@ -625,6 +628,16 @@ jobs:
         run: |
           kubectl get pod | grep user
 ```
+
+Code Analysis and Vulnerability Checking (4 points):
+- Code Analysis: Pylint is used as application is written in python. 
+CICD step: Check Pylint score. It scan the app.py or any.py file, and gives the score based on Vulnerability, good coding practices and etc.
+We can fails the CICD step and stop if set score is below user defined threshold.
+- Image Scan
+CICD step: Run Trivy vulnerability scanner
+It scan the build image and create report of vulnerabilities
+CICD step: Check Trivy results
+It process Trivy results and stop CICD if number of vulnerabilities's (High, Critical) is above user defined threshold
 
 Automation
 2. Bash Script (10 Points):
