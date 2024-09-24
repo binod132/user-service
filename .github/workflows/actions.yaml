@@ -74,8 +74,10 @@ jobs:
       # Check vulnerability counts and fail if thresholds are exceeded
       - name: Check Trivy results
         run: |
+          # Capture Trivy scan output directly
+          TRIVY_OUTPUT="${{ steps.trivy.outputs.vuln-report }}"
+          
           # Extract the number of vulnerabilities from the Trivy scan output
-          TRIVY_OUTPUT=$(echo "${{ steps.trivy.outputs.vuln-report }}" | grep -A 5 "Total" | tail -n +2)
           HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
           CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
 
