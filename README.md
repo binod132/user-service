@@ -1,7 +1,7 @@
 # **Assignment**
 ## **Kubernetes Lab Question**
 1. **Advanced Multi-Container Orchestration (30 Points):**  
-1.1 **Implement a Kubernetes Deployment for Service A with a horizontal pod
+  1. **Implement a Kubernetes Deployment for Service A with a horizontal pod
 autoscaler (HPA) that dynamically adjusts its replica count based on CPU
 utilization.**
 ```yaml
@@ -23,16 +23,16 @@ utilization.**
         target:
             type: Utilization
             averageUtilization: 75
-```
-1.2 **Deploy Service B with a custom metric monitoring configuration, allowing its
-replica count to be dynamically scaled based on the CPU utilization of Service A.**
-    I am using KEDA, event-based scaling, as keda is easy to implement and fast.
-2.1 Installtion
+```  
+  2. **Deploy Service B with a custom metric monitoring configuration, allowing its
+replica count to be dynamically scaled based on the CPU utilization of Service A.**  
+    We can use KEDA, event-based scaling, as keda is easy to implement and fast.
+a. Installtion
 
 ```yaml
     helm install keda kedacore/keda --namespace keda --create-namespace
 ```
-2.2 To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
+b. To enable scaling of pods of user-service based on order-service with KEDA and Prometheus, create a Prometheus ScaledObject for user-service deployment
 ```yaml
     apiVersion: keda.sh/v1alpha1
     kind: ScaledObject
@@ -52,7 +52,7 @@ replica count to be dynamically scaled based on the CPU utilization of Service A
         threshold: '1000'
         query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
 ```
-2.3 Validation
+c. Validation
     - Check hpa created by prometheus-scaledobject: 
 ```yaml
         kubectl get hpa
@@ -65,7 +65,7 @@ order-service                      Deployment/order-service   cpu: 10%/75%      
         kubectl get pod |grep user-service`
 ```
 
-3. Ensure that Service C is scheduled only on nodes with GPU resources available.
+1.3 Ensure that Service C is scheduled only on nodes with GPU resources available.
 You may use NodeAffinity or other suitable methods to achieve this.
 
 Add node-pool with GPU and add labels
