@@ -1,6 +1,41 @@
 # **Assignment**
-Useful links:
-frontend: 
+Useful links and informations:
+frontend: http://35.190.85.148/
+backend: order-service
+git repo: 
+  https://github.com/binod132/user-service
+  https://github.com/binod132/order-service
+  https://github.com/binod132/payment-service
+CICD: https://github.com/binod132/user-service/blob/main/.github/workflows/actions.yaml
+Local Registry: http://35.227.182.97:8081/#browse/browse:local-registry
+K8s manifest: 
+  https://github.com/binod132/user-service/blob/main/k8s/user-service.yaml
+  https://github.com/binod132/order-service/blob/main/k8s/order-service.yaml  
+
+#**General Questions:**
+**1. How do you ensure that security is integrated into the software development lifecycle in a DevSecOps environment? Can you give an example of how you implemented security measures in a recent project?**
+By implementing Code Scan and Image Scan to check quality of code and to find vulnerability into CICD. And by blocking CICD if there is any issue beside defined thresholds.
+I have implemented Code Analysis and Image Scan step on CICD. Using Pylint and Trivy. Code analysis steps passed only if score of code is above given threshold. Also doker buil step pass only if vumber of HIGH/Critical vulnerabilities are below defined threshold.
+**2. What tools and automation strategies do you recommend for efficient DevOps processes? How do you evaluate and choose tools for CI/CD pipelines, code analysis, and security monitoring?**
+By checking compatilibies and ingeration, usecase, security updates and following community's best practices.
+**3. Share your experience in architecting a On-Premises Kubernetes platform. What were the main challenges?**
+I have architected a On-Premises Kubernetes platform using kubeadm, containerd, calico and metallb. Major challenges are Upgrades and Maintenance due to version incompatibilities of different components.
+**4. DevOps requires close collaboration between development, operations, and security teams. Can you discuss your approach to fostering collaboration and communication among these teams? Provide an example of how you have successfully managed cross-functional teamwork in the past.**
+It is crucial to closely collaborate with development, operations, and security team. To architech, implement and test everysteps of SDLC, and to select right tools and external services.
+Programming laguage dependencies, bug fixing, testing, security compliance, monitoring and many more needs close collaboration between development, operations, and security team.
+One recent example.
+One major backend service (which push message to kafka from mqtt) was experiencing lagging, which lead to other microservice and whole messaging system slow. User were facing deply on message send and delivery.
+It needed close collaboration with dev, test and monitoring team.
+We have identified sycronisation issue on application code, CPU Throttoling, Kafka lagging and traffic was not splitted on scaled pods.
+
+We changed to async application, scaled pods based on kafka lag metrics, and implementated different traffic management technique.
+For each test/experiment, we perform live load test by collaborating with test and operation team.
+**5. How do you stay informed about emerging technologies and practices in DevSecOps? Can you discuss a recent technology or method you've incorporated into your work? Explain how it improved the development and security process.**
+By following communities and upgrades. By doing research on core topics.
+In kubernetes Gateway API is replacing Ingress, it allow more flexibility to manage network traffic and polices.
+I have implemented POC to implement Kubernetes Gateway API on GKE, and implemented Canary Deployment and traffic blocking based on domain.
+Also i have tested OPA Gatekeeper to create custom policies on kubernets by creating CRDs. It uses custom addmission webhook, that checks polices againts Custom Resources and maintain police and security compliance.
+
 # **Kubernetes Lab Question**
 1. #**Advanced Multi-Container Orchestration (30 Points):**  
   1.1 **Implement a Kubernetes Deployment for Service A with a horizontal pod
