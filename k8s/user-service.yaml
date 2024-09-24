@@ -115,8 +115,13 @@ metadata:
     cloud.google.com/health-check-timeout-sec: "30"
 
 spec:
+  # Add a default backend to catch all unmatched traffic
+  defaultBackend:
+    service:
+      name: user-service
+      port:
+        number: 80
   rules:
-
   - host: frontend.khalti.com
     http:
       paths:
