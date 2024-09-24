@@ -124,7 +124,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: order-service
+            name: user-service
             port:
-              number: 5000
+              number: 80
 
