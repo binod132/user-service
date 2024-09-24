@@ -108,7 +108,7 @@ metadata:
   name: public-ingress-prod
   annotations:
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: prod-test-ip
+    kubernetes.io/ingress.global-static-ip-name: prod-test-ip-external
     #networking.gke.io/managed-certificates: "managed-certificate"
     networking.gke.io/v1beta1.FrontendConfig: "http-to-https"
     cloud.google.com/health-check-interval-sec: "60"
