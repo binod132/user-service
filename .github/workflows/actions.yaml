@@ -46,6 +46,12 @@ jobs:
         run: |  
           docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+
+      # Pylint for Python Code Analysis
+      - name: Run Pylint for Python code analysis
+        run: |
+          pip install pylint
+          pylint app.py
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
         run: |
