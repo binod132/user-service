@@ -468,3 +468,37 @@ spec:
             port:
               number: 80
 ```
+
+
+
+
+Automation
+2. Bash Script (10 Points):
+Scenario:
+You have a directory with various text files. Write a Bash script to find all the unique words across all files.
+Example of files.txt
+File1.txt: It contains some unique words. File2.txt It also contains unique words.
+Output : It, contains, some, unique, words, also
+
+2.1 Creat a file: unique.sh
+```sh
+#!/bin/bash
+
+# Define the directory containing the text files
+DIR="/Users/binodadhikari/Downloads/test/"
+
+# Find all text files, extract words, remove punctuation, convert to lowercase, sort, and return unique words
+grep -ohE '\b\w+\b' "$DIR"/*.txt | tr '[:upper:]' '[:lower:]' | sort | uniq 
+```
+
+2.2 chomod +x unique.sh
+2.3 ./unique.sh
+```yaml
+@Binods-MacBook-Pro-2 test % ./unique_words.sh 
+file
+is
+number
+one
+this
+two
+```
