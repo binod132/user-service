@@ -60,26 +60,30 @@ jobs:
       
       # code analysis and vulnerability     
       # Install Trivy
-      - name: Install Trivy
-        run: |
-          sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.34.1_Linux-64bit.deb
-          sudo dpkg -i trivy_0.34.1_Linux-64bit.deb
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: '$REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
-      # Scan the Docker image with Trivy
-      - name: Scan Docker image with Trivy
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest || true
+      # # Scan the Docker image with Trivy
+      # - name: Scan Docker image with Trivy
+      #   run: |
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest || true
 
-      # Check the scan result and fail if critical vulnerabilities are found
-      - name: Check Trivy scan result
-        run: |
-          trivy image --quiet --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
-          if [ $? -ne 0 ]; then
-            echo "Critical vulnerabilities found in Docker image. Failing the build."
-            exit 1
-          fi
-          
+      # # Check the scan result and fail if critical vulnerabilities are found
+      # - name: Check Trivy scan result
+      #   run: |
+      #     trivy image --quiet --exit-code 1 --severity HIGH,CRITICAL $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+      #     if [ $? -ne 0 ]; then
+      #       echo "Critical vulnerabilities found in Docker image. Failing the build."
+      #       exit 1
+      #     fi
+
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
         run: |

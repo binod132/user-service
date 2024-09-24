@@ -1,4 +1,4 @@
-# user-service
+# Assignment
 
 1. Implement a Kubernetes Deployment for Service A with a horizontal pod
 autoscaler (HPA) that dynamically adjusts its replica count based on CPU
