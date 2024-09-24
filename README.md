@@ -227,6 +227,9 @@ spec:
 
 
 SUMMARY
+Kubernetes Lab Question
+Advanced Multi-Container Orchestration (30 Points):
+Tasks:
 1. Service A - Dynamic Scaling (HPA)
 Horizontal Pod Autoscaler (HPA): Configured for order-service, scaling based on CPU utilization.
 HPA will scale pods between 1 and 10 based on CPU average utilization threshold of 75%.
@@ -245,3 +248,223 @@ Certificates are managed via cert-manager, stored in Kubernetes secrets.
 5. Event-Driven Dynamic Scaling
 KEDA Metrics: Utilized Prometheus metrics to scale user-service based on the CPU load of order-service.
 Metrics used: container_cpu_usage_seconds_total from Prometheus for event-driven scaling based on traffic or load.
+
+Deploying a Multi-Container Application (20 Points)
+Note: user-service as frontend and order-service as backend
+Tasks:
+1. Create a Kubernetes Deployment for the frontend web server user-service, ensuring it has:
+a. Container image: your-frontend-image:latest
+b. Desired replicas: 3
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  labels:
+    app: user-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+```
+Note: user-service scale based on external custom metrics from KEDA, where minimum replica is set 3.
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: prometheus-scaledobject
+  namespace: default
+spec:
+  minReplicaCount: 3
+  maxReplicaCount: 10
+  scaleTargetRef:
+    name: user-service
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090 
+      metricName: container_cpu_usage_seconds_total
+      threshold: '20'
+      query: sum(container_cpu_usage_seconds_total{pod=~"order-service-.*"})
+```
+2. Create a Kubernetes Deployment for the backend API server with:
+a. Container image: your-backend-image:latest
+b. Desired replicas: 2
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  labels:
+    app: order-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: gpu
+                operator: NotIn
+                values:
+                - "true"
+      containers:
+      - name: order-service
+        image: us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/order-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "10m"
+```
+Note: order-service scale based on HPA, where minimum replica count is set 2.
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: order-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+```
+3. Expose the frontend and backend Deployments via Kubernetes Services,
+allowing them to communicate internally within the cluster.
+
+Frontend and Backend Kubernetes Services are expose using service type ClusterIP to communicate internally within the cluster.
+For frontend (user-service)
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: user-service
+```
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: default
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: order-service
+  ports:
+    - name: http  # Name for the HTTP port
+      protocol: TCP
+      port: 5000  # App port
+      targetPort: 5000
+    - name: metrics  # Name for the metrics port
+      protocol: TCP
+      port: 9100  # Prometheus metrics port
+      targetPort: 9100
+```
+4. Verify that the pods are running and the services are accessible within the
+cluster.
+
+We can verify pods using: 
+```yaml
+kubectl get pods
+```
+user-service-7ccc68f985-bnwsl    1/1     Running   0          27m
+user-service-7ccc68f985-htl94    1/1     Running   0          27m
+user-service-7ccc68f985-vvwfc    1/1     Running   0          27m
+order-service-6b5856f7fd-pc972   1/1     Running   0          14h
+order-service-6b5856f7fd-xnnnd   1/1     Running   0          90m
+
+We can verify services using:
+```yaml
+kubectl get svc
+```
+user-service         ClusterIP      34.118.236.234   <none>           80/TCP              5d11h
+order-service        ClusterIP      34.118.239.147   <none>           5000/TCP,9100/TCP   5d11h
+
+5. Set up an Ingress resource to expose the frontend service to the external world.
+For Ingress setup, Ingress Class GCE is used. It expose using external application loadbalancer.
+Also, Static IP is assigned. And all unmatched traffics are redirected to default user-service.
+We can add GCP managed certificates also for https (need valid domain first) or can add self-generated certificates.
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-ingress-prod
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: prod-test-ip-external
+    #networking.gke.io/managed-certificates: "managed-certificate"
+    networking.gke.io/v1beta1.FrontendConfig: "http-to-https"
+    cloud.google.com/health-check-interval-sec: "60"
+    cloud.google.com/health-check-timeout-sec: "30"
+
+spec:
+  # Add a default backend to catch all unmatched traffic
+  defaultBackend:
+    service:
+      name: user-service
+      port:
+        number: 80
+  rules:
+  - host: frontend.khalti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 80
+```

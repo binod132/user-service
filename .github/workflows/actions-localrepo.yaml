@@ -1,0 +1,29 @@
+name: Build and Publish Docker Image to selfhosted docker registry
+
+on:
+  push:
+    branches:
+      - main  # Adjust this to your desired branch
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Log in to Nexus
+      run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_URL }} -u ${{ secrets.NEXUS_USERNAME }} --password-stdin
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.NEXUS_URL }}/user-service:latest .  
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ secrets.NEXUS_URL }}/user-service:latest  
+
+    - name: Log out from Nexus
+      run: docker logout ${{ secrets.NEXUS_URL }}
