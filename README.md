@@ -516,7 +516,7 @@ name: CI/CD for Microservices
 on:
   push:
     branches:
-      - task-1  # Trigger on pushes to the main branch
+      - main  # Trigger on pushes to the main branch
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -553,12 +553,60 @@ jobs:
       - name: "Docker auth"
         run: |-
               gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+      # code analysis and vulnerability
+      ## Application code analysis and vulnerability
+      - name: Check Pylint score
+        run: |
+          pylint_score=$(grep "rated at" pylint-output.txt | awk '{print $7}' | sed 's/\/10//')
+          echo "Pylint score: $pylint_score"
+          if (( $(echo "$pylint_score <= 0.01" | bc -l) )); then
+            echo "Pylint score is too low. Failing the build."
+            exit 1
+          fi
+          echo "Pylint score is acceptable. Passing the build."
 
       # Build and push Order Service Docker image
       - name: Build and Push Order Service Docker image
         run: |  
           docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest .
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/microservice/user-service:latest
+      
+      # code analysis and vulnerability     
+     # Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: 'us-west1-docker.pkg.dev/brave-smile-424210-m0/microservice/user-service:latest'
+          format: 'table'
+          exit-code: '0' # Set to 0 to allow subsequent steps
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          output: test.txt
+
+      # Check vulnerability counts and fail if thresholds are exceeded
+      - name: Check Trivy results
+        run: |
+          # Capture Trivy scan output from the output file
+          TRIVY_OUTPUT=$(cat test.txt)
+          
+          # Extract the number of vulnerabilities from the Trivy scan output
+          HIGH_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'HIGH: \K[0-9]+')
+          CRITICAL_COUNT=$(echo "$TRIVY_OUTPUT" | grep -oP 'CRITICAL: \K[0-9]+')
+
+          # Set thresholds
+          HIGH_THRESHOLD=10
+          CRITICAL_THRESHOLD=10
+
+          # Check counts against thresholds
+          if [ "$HIGH_COUNT" -gt "$HIGH_THRESHOLD" ] || [ "$CRITICAL_COUNT" -gt "$CRITICAL_THRESHOLD" ]; then
+            echo "Vulnerability threshold exceeded: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+            exit 1  # Fail the step
+          else
+            echo "Vulnerability check passed: HIGH: $HIGH_COUNT, CRITICAL: $CRITICAL_COUNT"
+          fi
+
       # Set up kubectl to interact with the GKE cluster
       - name: Set up kubectl
         run: |
